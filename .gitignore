@@ -1,0 +1,9 @@
+build/
+Debug/
+Release/
+__pycache__/
+*.py[cod]
+*.log
+*.o
+*.elf
+*.map
