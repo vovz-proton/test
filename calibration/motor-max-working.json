@@ -1,0 +1,19 @@
+{
+  "recorded_date": "2026-10-28",
+  "status": "user_confirmed_maximum_working_profile",
+  "microsteps": 64,
+  "mode_index": 2,
+  "equivalent_256_pulses_per_second": 1445600,
+  "commanded_step_hz": 361400,
+  "timer_step_hz": 363636.363636,
+  "nominal_max_speed_mm_s": 28.990554,
+  "acceleration_multiplier": 4,
+  "travel_mm_each_direction": 10,
+  "pulses_each_direction": 125429,
+  "cycle_count": 1,
+  "first_direction": "extend",
+  "dir_extend": 1,
+  "dir_retract": 0,
+  "disable_coils_after_cycle": true,
+  "note": "Accepted by user as maximum for current mechanics. Physical speed and lost steps not independently measured. Keep speed AND acceleration together; higher profiles did not work reliably."
+}

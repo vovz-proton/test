@@ -4,6 +4,7 @@
 #include "motor.h"
 #include "acquisition.h"
 #include "instrument_config.h"
+#include "firmware_update.h"
 
 /* PA15 AF10 = TIM12_CH2. TIM12 has no DMA request of its own:
  * TIM4_UP -> DMA1 CH7 -> TIM12 CCR2 preload.
@@ -17,6 +18,8 @@
 static uint16_t frame[LED_WS_WORDS];
 
 static uint32_t last_frame_us;
+static uint32_t upload_started_ms;
+static uint8_t was_uploading;
 
 
 
@@ -89,6 +92,16 @@ void LED2020_Poll(void)
     ++led2020_status.faults;
     return;
   }
+  if(Firmware_UploadActive()) {
+    uint32_t ms=HAL_GetTick();
+    if(!was_uploading) { was_uploading=1U; upload_started_ms=ms; }
+    /* 2 Hz, 50% duty cycle, green at 50% of full channel brightness. */
+    LedRgb uploading={0,0,0};
+    if(((ms-upload_started_ms)/250U)%2U==0U) uploading.g=128U;
+    send(uploading);
+    return;
+  }
+  was_uploading=0;
   /* Direct limit-switch indication, including bench mode: PF7 low is active. */
   uint8_t active=((Konc_GPIO_Port->IDR&Konc_Pin)?1U:0U)==KONC_ACTIVE_LEVEL;
   LedRgb color={0,0,0};

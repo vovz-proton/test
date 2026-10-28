@@ -73,6 +73,8 @@ void Error_Handler(void);
 #define MotorM2_GPIO_Port GPIOB
 #define MotorSTBY_Pin GPIO_PIN_7
 #define MotorSTBY_GPIO_Port GPIOB
+#define MotorFAULT_Pin GPIO_PIN_9
+#define MotorFAULT_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

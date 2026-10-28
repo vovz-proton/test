@@ -14,8 +14,14 @@ typedef struct {
   uint8_t returning;
   uint16_t length_tenths_mm;
   uint8_t speed, active_speed;
+  volatile uint32_t driver_faults;
 } MotorStatus;
 extern MotorStatus motor_status;
+/* phase: 0=off, 1=initial motion, 2=timed reverse, 3=finished, 4=aborted. */
+typedef struct {
+  volatile uint32_t phase,start_us,end_us,elapsed_us,pulses,pulse_hz;
+} MotorCalibrationStatus;
+extern MotorCalibrationStatus motor_calibration;
 void Motor_Init(void);
 void Motor_Poll(void);
 typedef enum { MOTOR_OK, MOTOR_BUSY, MOTOR_NOT_SCANNING, MOTOR_ZERO_LENGTH, MOTOR_ERROR } MotorResult;

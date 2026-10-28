@@ -7,6 +7,30 @@
 #define SDADC_RATE_HZ 50000U
 #define DEFAULT_LENGTH_TENTHS_MM 20U
 #define DEFAULT_SPEED 0U
+#ifndef MOTOR_DISABLED
+#define MOTOR_DISABLED 0
+#endif
+/* Dedicated bench build: continuous direction selected by the raw limit input. */
+#ifndef MOTOR_LIMIT_JOG
+#define MOTOR_LIMIT_JOG 0
+#endif
+#ifndef MOTOR_TRAVEL_CAL
+#define MOTOR_TRAVEL_CAL 0
+#endif
+#ifndef MOTOR_SHUTTLE_TEST
+#define MOTOR_SHUTTLE_TEST 0
+#endif
+#ifndef MOTOR_MUSIC_TEST
+#define MOTOR_MUSIC_TEST 0
+#endif
+/* Corrected by direct observation of the shuttle's FIRST (DIR=0) movement. */
+#define MOTOR_DIR_EXTEND 1U
+#define MOTOR_DIR_RETRACT 0U
+/* 1547788 pulses measured over 30850 um, PS0 = 1/256 microstep. */
+#define MOTOR_SHUTTLE_PULSES ((uint32_t)((1547788ULL*10000U+15425U)/30850U))
+/* Speed in equivalent 1/256 pulses/s; actual STEP scales with subdivision. */
+#define MOTOR_SHUTTLE_HZ 1445600U
+#define MOTOR_SHUTTLE_MODE 2U /* 1/64 microstep. */
 #define FULL_STEPS_PER_TRAVEL 1200U
 #define TRAVEL_TENTHS_MM 85U
 /* GP2S700HCP: emitter to GND, collector PF7 with external R35=4.7k to +5V.

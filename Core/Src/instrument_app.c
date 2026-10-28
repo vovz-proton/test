@@ -26,6 +26,9 @@ static volatile uint8_t rx_paused;
 static volatile WireState last_sent_state=WIRE_UNKNOWN;
 static uint32_t next_tx;
 static uint8_t last_scanning;
+#if MOTOR_TRAVEL_CAL
+static uint32_t last_cal_reported=UINT32_MAX;
+#endif
 volatile uint32_t instrument_usb_skipped, instrument_command_overruns;
 
 /* --- Приветствие при подключении -------------------------------------------
@@ -49,6 +52,9 @@ uint8_t Instrument_UsbCanReceive(void)
 }
 void Instrument_UsbLineState(uint16_t state)
 {
+#if MOTOR_TRAVEL_CAL
+  if(state&1U) last_cal_reported=UINT32_MAX;
+#endif
 #if HELLO_BRINGUP
   /* bit 0 = DTR: хост открыл порт - здороваемся один раз. */
   if(state&1U) hello_pending=1U;
@@ -58,6 +64,9 @@ void Instrument_UsbLineState(uint16_t state)
 }
 void Instrument_UsbReset(void)
 {
+#if MOTOR_TRAVEL_CAL
+  last_cal_reported=UINT32_MAX;
+#endif
   ++usb_epoch;
   head=tail=0; reply_head=reply_tail=0;
   parser.used=0; rx_paused=0; last_sent_state=WIRE_UNKNOWN;
@@ -170,6 +179,24 @@ static void transmit(void)
     if(sent) return;
   }
 #endif
+  /* Calibration state/result persists in RAM and is resent on USB reconnect. */
+#if MOTOR_TRAVEL_CAL
+  uint32_t phase=motor_calibration.phase;
+  if(phase!=last_cal_reported) {
+    AsciiOutput cal;
+    Ascii_Init(&cal,(char*)tx_buffer,sizeof tx_buffer);
+    Ascii_Text(&cal,"CAL="); Ascii_U32(&cal,phase,0);
+    Ascii_Text(&cal,",T_US="); Ascii_U32(&cal,motor_calibration.elapsed_us,0);
+    Ascii_Text(&cal,",PULSES="); Ascii_U32(&cal,motor_calibration.pulses,0);
+    Ascii_Text(&cal,",L_UM=30850\r\n");
+    int n=Ascii_End(&cal);
+    mask=__get_PRIMASK(); __disable_irq();
+    uint8_t sent=n>0 && epoch==usb_epoch && CDC_Transmit_FS(tx_buffer,(uint16_t)n)==USBD_OK;
+    if(sent) last_cal_reported=phase;
+    __set_PRIMASK(mask);
+    if(sent) return;
+  }
+#endif
   if(!due && !have_reply && !state_due) return;
   /* A USB packet can contain several CRLF-terminated lines. Reserve telemetry
    * first, so ACK traffic cannot starve the 20/500 Hz measurement schedule. */
@@ -220,6 +247,7 @@ void Instrument_Poll(void)
   /* Режим обновления ПО: прибор не измеряет, порт занят загрузчиком. */
   if(Firmware_UploadActive()) {
     transmit();                   /* отдать ACK=BT и прочие ответы */
+    LED2020_Poll();               /* show upload before erase blocks the CPU */
     Firmware_UploadService();     /* стереть область, разобрать принятое, тайм-аут */
     usb_rearm();
     LED2020_Poll();

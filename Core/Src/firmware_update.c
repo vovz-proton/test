@@ -33,6 +33,7 @@
 #include "dac_sine.h"
 #include "acquisition.h"
 #include "motor.h"
+#include "led2020.h"
 #include "usbd_cdc_if.h"
 #include "usbd_core.h"
 #include "usbd_def.h"
@@ -154,7 +155,15 @@ uint32_t Firmware_CopyStub(uint32_t source,uint32_t destination,
     }
   }
   FLASH->CR|=FLASH_CR_LOCK;
-  return 1U;
+  /* Never return into the application we just replaced: its call site's
+   * address may now hold unrelated instructions. Reset from this protected
+   * copyer section, without calling code or loading constants from APP. */
+  *(volatile uint32_t*)MARKER_ADDR=0U;
+  __DSB();
+  SCB->AIRCR=(0x5FAUL<<SCB_AIRCR_VECTKEY_Pos)|
+             (SCB->AIRCR&SCB_AIRCR_PRIGROUP_Msk)|SCB_AIRCR_SYSRESETREQ_Msk;
+  __DSB();
+  for(;;) { }
 }
 
 /**
@@ -235,6 +244,7 @@ static uint8_t Firmware_StagingErase(void)
   for(uint32_t page=0U;page<STAGING_PAGES;++page)
   {
     if(Firmware_FlashErasePage(STAGING_BASE+page*FLASH_PAGE)==0U) ok=0U;
+    LED2020_Poll();
   }
   Firmware_FlashLock();
   return ok;
@@ -258,6 +268,7 @@ static uint8_t Firmware_StagingWrite(uint32_t offset,const uint8_t *data,uint8_t
     }
   }
   Firmware_FlashLock();
+  LED2020_Poll();
   return 1U;
 }
 
@@ -268,6 +279,7 @@ static void Firmware_Send(const char *text)
   /* CDC keeps this pointer until IN completes; never give it a stack buffer.
    * Re-read class state because disconnect/reset can invalidate it in an IRQ. */
   do {
+    LED2020_Poll();
     uint32_t mask=__get_PRIMASK();
     __disable_irq();
     USBD_CDC_HandleTypeDef *cdc=(USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
@@ -305,6 +317,11 @@ static uint8_t Firmware_ImageLooksValid(void)
 }
 
 /** @brief Завершение приёма: маркер, разрыв шины, перезапуск. */
+static void upload_delay(uint32_t ms)
+{
+  uint32_t start=HAL_GetTick();
+  do { LED2020_Poll(); } while((uint32_t)(HAL_GetTick()-start)<ms);
+}
 static void Firmware_Finish(void)
 {
   char msg[24];
@@ -329,13 +346,13 @@ static void Firmware_Finish(void)
   marker[2]=Firmware_StagingSum();
   marker[0]=MARKER_MAGIC;         /* магия пишется последней */
   Firmware_Send("DONE\r\n");
-  HAL_Delay(100);                 /* дать хосту принять ответ */
+  upload_delay(100);              /* дать хосту принять ответ */
   /* Гасим USB целиком: иначе прерывание или класс успеют вернуть PA12 в режим
      USB, хост не увидит отключения и не перечислит устройство заново. */
   HAL_NVIC_DisableIRQ(USB_LP_IRQn);
   (void)USBD_DeInit(&hUsbDeviceFS);
   Firmware_UsbHold();
-  HAL_Delay(500);
+  upload_delay(500);
   NVIC_SystemReset();
 }
 

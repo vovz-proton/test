@@ -1,0 +1,18 @@
+{
+  "captured_at_moscow": "2026-10-28T07:23:42.7820692+03:00",
+  "source": "STM32 hardware TIM5, reverse start to second confirmed closure edge",
+  "raw": "CAL=3,T_US=34374735,PULSES=1561027,L_UM=30850",
+  "distance_mm": 30.85,
+  "time_us": 34374735,
+  "time_s": 34.374735,
+  "pulses": 1561027,
+  "average_speed_mm_s": 0.8974614640665594,
+  "pulses_per_mm": 50600.5510534846,
+  "microsteps_per_full_step": 256,
+  "full_steps_per_mm": 197.65840255267423,
+  "commanded_pulse_hz": 45175,
+  "steady_timer_pulse_hz": 45454.545454545456,
+  "notes": "Includes acceleration and switching/setup time. Assumes no lost steps. Distance supplied by user.",
+  "valid": false,
+  "rejection_reason": "User rejected this run; repeat required"
+}

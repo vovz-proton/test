@@ -1,4 +1,4 @@
-﻿param([string]$ToolchainBin, [switch]$Mechanics, [string]$OutputDirectory = 'build')
+param([string]$ToolchainBin, [switch]$Mechanics, [switch]$LimitJog, [switch]$TravelCal, [switch]$LedOnly, [switch]$ShuttleTest, [switch]$MusicTest, [string]$OutputDirectory = 'build')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 if (!$ToolchainBin) {
@@ -21,7 +21,12 @@ $includes = @('Core/Inc','Drivers/STM32F3xx_HAL_Driver/Inc','Drivers/STM32F3xx_H
 $opt = @('-Os','-flto','-fno-unwind-tables','-fno-asynchronous-unwind-tables','-fno-math-errno')
 $common = @('-mcpu=cortex-m4','-mthumb','-mfpu=fpv4-sp-d16','-mfloat-abi=hard') + $opt + @('-g3',
     '-ffunction-sections','-fdata-sections','-DUSE_HAL_DRIVER','-DSTM32F373xC')
+if ($MusicTest) { if ($ShuttleTest -or $TravelCal -or $LimitJog -or $Mechanics -or $LedOnly) { throw 'MusicTest requires a dedicated build' }; $common += '-DMOTOR_MUSIC_TEST=1' }
+if ($ShuttleTest) { if ($TravelCal -or $LimitJog -or $Mechanics -or $LedOnly) { throw 'ShuttleTest requires a dedicated build' }; $common += '-DMOTOR_SHUTTLE_TEST=1' }
+if ($LedOnly) { if ($TravelCal -or $LimitJog -or $Mechanics) { throw 'LedOnly cannot be combined with motor modes' }; $common += '-DMOTOR_DISABLED=1' }
 if ($Mechanics) { $common += "-DBENCH_NO_MECHANICS=0" }
+if ($TravelCal) { $common += '-DMOTOR_TRAVEL_CAL=1'; $LimitJog = $true }
+if ($LimitJog) { $common += '-DMOTOR_LIMIT_JOG=1' }
 foreach ($inc in $includes) { $common += '-I' + (Join-Path $root $inc) }
 $sources = Get-ChildItem (Join-Path $root 'Core/Src'),(Join-Path $root 'Drivers/STM32F3xx_HAL_Driver/Src'),(Join-Path $root 'USB_DEVICE'),(Join-Path $root 'Middlewares') -Filter '*.c' -Recurse
 $objects = @()
